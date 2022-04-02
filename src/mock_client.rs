@@ -1,15 +1,17 @@
-use std::cell::RefCell;
-use std::collections::HashMap;
 use crate::client::QueryResponse;
 use crate::PostDataClient;
+use std::cell::RefCell;
+use std::collections::HashMap;
 
 pub struct MockClient {
-    response_map: RefCell<HashMap<String, Result<QueryResponse, ()>>>
+    response_map: RefCell<HashMap<String, Result<QueryResponse, ()>>>,
 }
 
 impl MockClient {
     fn set_mock_post_data<T: Into<String>>(&self, post_id: T, result: Result<QueryResponse, ()>) {
-        self.response_map.borrow_mut().insert(post_id.into(), result);
+        self.response_map
+            .borrow_mut()
+            .insert(post_id.into(), result);
     }
 }
 

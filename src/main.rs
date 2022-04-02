@@ -1,9 +1,23 @@
 mod client;
 mod content;
 
+#[cfg(all(feature = "lambda", feature = "standalone"))]
+compile_error!("can only use either the lambda, or the standalone feature");
+
+#[cfg(feature = "lambda")]
 use lambda_http::{
-    http::StatusCode, service_fn, Error, IntoResponse, Request, RequestExt, Response,
+    http::{header::CONTENT_TYPE, HeaderValue, StatusCode},
+    service_fn, Error, IntoResponse, Request, RequestExt, Response,
 };
+
+#[cfg(feature = "standalone")]
+use salvo::{
+    async_trait, fn_handler,
+    http::{header::CONTENT_TYPE, HeaderValue, StatusCode},
+    prelude::TcpListener,
+    Router, Server,
+};
+
 use std::string::ToString;
 
 use client::{Client, PostDataClient};
@@ -17,6 +31,7 @@ lazy_static! {
 
 #[cfg(test)]
 mod mock_client;
+
 #[cfg(test)]
 use crate::mock_client::MockClient;
 #[cfg(test)]
@@ -24,24 +39,53 @@ lazy_static! {
     static ref CLIENT: MockClient = MockClient;
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
-    lambda_http::run(service_fn(func)).await?;
-    Ok(())
+fn render_post(post_id: &str) -> String {
+    let page = Page::create(CLIENT.get_post_data(post_id).unwrap().get_post());
+    page.render().to_string()
 }
 
-async fn func(event: Request) -> Result<impl IntoResponse, Error> {
+#[fn_handler]
+#[cfg(feature = "standalone")]
+async fn handle_response_standalone(req: &mut salvo::Request, res: &mut salvo::Response) {
+    let postid = req.params().get("postid").unwrap();
+    let content = render_post(postid);
+    res.set_status_code(StatusCode::OK);
+    res.headers_mut().insert(
+        CONTENT_TYPE,
+        HeaderValue::from_static("text/html; charset=utf-8"),
+    );
+    res.write_body_bytes(content.as_bytes());
+}
+
+#[cfg(feature = "lambda")]
+async fn handle_response_aws(event: Request) -> Result<impl IntoResponse, Error> {
     let params = event.path_parameters();
-
     let postid = params.first("postid").unwrap_or("633ff591866e");
-
-    let page = Page::create(CLIENT.get_post_data(postid).unwrap().get_post());
-
+    let content = render_post(postid);
     let builder = Response::builder()
-        .header("Content-Type", "text/html;charset=utf-8")
+        .header(
+            CONTENT_TYPE,
+            HeaderValue::from_static("text/html; charset=utf-8"),
+        )
         .status(StatusCode::OK);
 
-    Ok(builder
-        .body(page.render().to_string())
-        .expect("failed to build response"))
+    Ok(builder.body(content).expect("failed to build response"))
+}
+
+#[tokio::main]
+async fn main() -> Result<(), ()> {
+    #[cfg(feature = "lambda")]
+        lambda_http::run(service_fn(handle_response_aws))
+        .await
+        .map_err(|_| ())?;
+
+    #[cfg(feature = "standalone")]
+        {
+            let router = Router::with_path("/<postid>").get(handle_response_standalone);
+            Server::new(TcpListener::bind("127.0.0.1:7878"))
+                .serve(router)
+                .await;
+        }
+
+    Ok(())
 }
