@@ -14,5 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: setup rust musl targets
+      run: rustup target add x86_64-unknown-linux-musl
     - name: cargo check
       run: cargo check --verbose
