@@ -432,6 +432,7 @@ name = "mediumrare"
 version = "0.1.0"
 dependencies = [
  "lambda_http",
+ "lazy_static",
  "serde",
  "serde_json",
  "tokio",

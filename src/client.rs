@@ -76,7 +76,7 @@ pub struct QueryRequest<'a> {
     variables: HashMap<&'a str, &'a str>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PostResult {
     id: String,
@@ -100,18 +100,18 @@ impl PostResult {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Content {
     body_model: BodyModel,
 }
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct BodyModel {
     paragraphs: Vec<Paragraph>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Paragraph {
     id: String,
@@ -124,13 +124,13 @@ pub struct Paragraph {
     pub iframe: Option<IFrame>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct IFrame {
     pub media_resource: IFrameMediaResource,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct IFrameMediaResource {
     id: String,
@@ -140,7 +140,7 @@ pub struct IFrameMediaResource {
     pub title: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Metadata {
     alt: Option<String>,
@@ -149,7 +149,7 @@ pub struct Metadata {
     original_height: usize,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Markup {
     end: usize,
@@ -158,14 +158,14 @@ pub struct Markup {
     r#type: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Topic {
     topic_id: String,
     name: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Tag {
     id: String,
@@ -173,7 +173,7 @@ pub struct Tag {
     normalized_tag_slug: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Creator {
     id: String,
@@ -182,7 +182,7 @@ pub struct Creator {
     bio: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PreviewImage {
     id: String,
@@ -190,13 +190,13 @@ pub struct PreviewImage {
     original_height: Option<usize>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ResponseData {
     post_result: PostResult,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryResponse {
     data: ResponseData,
@@ -218,15 +218,23 @@ fn create_post_query(post_id: &str) -> QueryRequest {
     }
 }
 
-pub fn get_post_data(post_id: &str) -> QueryResponse {
-    let response_text = ureq::post("https://medium.com/_/graphql")
-        .set("Content-Type", "application/json")
-        .send_json(&create_post_query(post_id))
-        .unwrap()
-        .into_string()
-        .unwrap();
+pub trait PostDataClient {
+    fn get_post_data(&self, post_id: &str) -> Result<QueryResponse, ()>;
+}
 
-    println!("{response_text}");
+pub struct Client;
 
-    serde_json::from_str::<QueryResponse>(&response_text).unwrap()
+impl PostDataClient for Client {
+    fn get_post_data(&self, post_id: &str) -> Result<QueryResponse, ()> {
+        let response_text = ureq::post("https://medium.com/_/graphql")
+            .set("Content-Type", "application/json")
+            .send_json(&create_post_query(post_id))
+            .unwrap()
+            .into_string()
+            .unwrap();
+
+        println!("{response_text}");
+
+        Ok(serde_json::from_str::<QueryResponse>(&response_text).unwrap())
+    }
 }
