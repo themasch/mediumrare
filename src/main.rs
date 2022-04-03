@@ -1,10 +1,11 @@
 mod client;
 mod content;
+mod text_markup;
 
 #[cfg(all(feature = "lambda", feature = "standalone"))]
 compile_error!("can only use either the lambda, or the standalone feature");
 
-#[cfg(feature = "lambda")]
+#[cfg(not(feature = "standalone"))]
 use lambda_http::{
     http::{header::CONTENT_TYPE, HeaderValue, StatusCode},
     service_fn, Error, IntoResponse, Request, RequestExt, Response,
@@ -24,19 +25,8 @@ use client::{Client, PostDataClient};
 use content::{Page, Render};
 use lazy_static::lazy_static;
 
-#[cfg(not(test))]
 lazy_static! {
     static ref CLIENT: Client = Client;
-}
-
-#[cfg(test)]
-mod mock_client;
-
-#[cfg(test)]
-use crate::mock_client::MockClient;
-#[cfg(test)]
-lazy_static! {
-    static ref CLIENT: MockClient = MockClient;
 }
 
 fn render_post(post_id: &str) -> String {
@@ -47,6 +37,10 @@ fn render_post(post_id: &str) -> String {
 #[fn_handler]
 #[cfg(feature = "standalone")]
 async fn handle_response_standalone(req: &mut salvo::Request, res: &mut salvo::Response) {
+    if req.uri().to_string().contains("favicon") {
+        return;
+    }
+
     let postid = req.params().get("postid").unwrap();
     let content = render_post(postid);
     res.set_status_code(StatusCode::OK);
@@ -57,7 +51,7 @@ async fn handle_response_standalone(req: &mut salvo::Request, res: &mut salvo::R
     res.write_body_bytes(content.as_bytes());
 }
 
-#[cfg(feature = "lambda")]
+#[cfg(not(feature = "standalone"))]
 async fn handle_response_aws(event: Request) -> Result<impl IntoResponse, Error> {
     let params = event.path_parameters();
     let postid = params.first("postid").unwrap_or("633ff591866e");
@@ -74,18 +68,18 @@ async fn handle_response_aws(event: Request) -> Result<impl IntoResponse, Error>
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
-    #[cfg(feature = "lambda")]
-        lambda_http::run(service_fn(handle_response_aws))
+    #[cfg(not(feature = "standalone"))]
+    lambda_http::run(service_fn(handle_response_aws))
         .await
         .map_err(|_| ())?;
 
     #[cfg(feature = "standalone")]
-        {
-            let router = Router::with_path("/<postid>").get(handle_response_standalone);
-            Server::new(TcpListener::bind("127.0.0.1:7878"))
-                .serve(router)
-                .await;
-        }
+    {
+        let router = Router::with_path("/<postid>").get(handle_response_standalone);
+        Server::new(TcpListener::bind("127.0.0.1:7878"))
+            .serve(router)
+            .await;
+    }
 
     Ok(())
 }

@@ -152,10 +152,10 @@ pub struct Metadata {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Markup {
-    end: usize,
-    start: usize,
-    href: Option<String>,
-    r#type: String,
+    pub end: usize,
+    pub start: usize,
+    pub href: Option<String>,
+    pub r#type: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -232,8 +232,6 @@ impl PostDataClient for Client {
             .unwrap()
             .into_string()
             .unwrap();
-
-        println!("{response_text}");
 
         Ok(serde_json::from_str::<QueryResponse>(&response_text).unwrap())
     }

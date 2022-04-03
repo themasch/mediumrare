@@ -1,5 +1,6 @@
 use crate::client;
-use crate::client::PostResult;
+use crate::client::{Markup, PostResult};
+use crate::text_markup::{SpanWrap, TextSpan};
 use std::collections::HashMap;
 
 pub enum Content {
@@ -49,10 +50,33 @@ impl Content {
     ) -> Content {
         Content::Tag {
             name: name.into(),
-            attributes: attr.unwrap_or_else(|| HashMap::new()),
+            attributes: attr.unwrap_or_default(),
             children,
         }
     }
+}
+
+fn render_text(text: &str, markups: &[Markup]) -> Vec<Content> {
+    if markups.is_empty() {
+        return vec![Content::text(text)];
+    }
+
+    let mut span = TextSpan::create(text);
+    for markup in markups {
+        let subspan = span.get_sub_span_mut(markup.start, markup.end);
+        let wrap = match markup.r#type.as_str() {
+            "STRONG" => SpanWrap::Strong,
+            "EM" => SpanWrap::Emphasized,
+            "A" => SpanWrap::Link {
+                href: markup.href.as_ref().unwrap_or(&"".to_string()).to_string(),
+            },
+            _ => panic!(),
+        };
+
+        subspan.add_wrap(wrap);
+    }
+
+    span.into()
 }
 
 pub trait Render {
@@ -76,9 +100,10 @@ impl Render for client::Paragraph {
             "OLI" => Content::tag(
                 "li",
                 None,
-                Some(vec![Content::text(
+                Some(render_text(
                     self.text.as_ref().map_or("", |t| t.as_str()),
-                )]),
+                    &self.markups,
+                )),
             ),
             "IFRAME" => {
                 let mut attributes: HashMap<String, String> = HashMap::new();
@@ -101,11 +126,12 @@ impl Render for client::Paragraph {
                 )
             }
             _ => Content::tag(
-                &self.r#type,
+                "div",
                 None,
-                Some(vec![Content::text(
+                Some(render_text(
                     self.text.as_ref().map_or("", |t| t.as_str()),
-                )]),
+                    &self.markups,
+                )),
             ),
         }
     }
