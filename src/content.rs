@@ -3,6 +3,17 @@ use crate::client::{Markup, PostResult};
 use crate::text_markup::{SpanWrap, TextSpan};
 use std::collections::HashMap;
 
+macro_rules! attributes {
+    ($($name:expr => $value:expr),+) => {
+        {
+            let mut attributes = HashMap::<String, String>::new();
+            $(attributes.insert($name.to_string(), $value.to_string());)+
+
+            attributes
+        }
+    }
+}
+
 pub enum Content {
     Text(String),
     Tag {
@@ -87,15 +98,10 @@ impl Render for client::Paragraph {
     fn render(&self) -> Content {
         match self.r#type.as_str() {
             "IMG" => {
-                let mut attributes: HashMap<String, String> = HashMap::new();
-                attributes.insert(
-                    "src".into(),
-                    format!(
-                        "https://miro.medium.com/max/2000/{}",
-                        self.metadata.as_ref().unwrap().id
-                    ),
-                );
-                Content::tag("img", Some(attributes), None)
+                let attr = Some(attributes! {
+                    "src" => format!("https://miro.medium.com/max/2000/{}",self.metadata.as_ref().unwrap().id)
+                });
+                Content::tag("img", attr, None)
             }
             "OLI" => Content::tag(
                 "li",
@@ -106,33 +112,55 @@ impl Render for client::Paragraph {
                 )),
             ),
             "IFRAME" => {
-                let mut attributes: HashMap<String, String> = HashMap::new();
-                attributes.insert(
-                    "href".into(),
-                    self.iframe
+                let attr = Some(attributes! {
+                    "href" => self.iframe
                         .as_ref()
                         .unwrap()
                         .media_resource
                         .iframe_src
-                        .clone(),
-                );
+                        .clone()
+                });
                 Content::tag(
                     "a",
-                    Some(attributes),
+                    attr,
                     Some(vec![
                         Content::text("IFRAME: "),
                         Content::text(self.iframe.as_ref().unwrap().media_resource.title.clone()),
                     ]),
                 )
             }
-            _ => Content::tag(
-                "div",
-                None,
-                Some(render_text(
-                    self.text.as_ref().map_or("", |t| t.as_str()),
-                    &self.markups,
-                )),
-            ),
+            "BQ" => {
+                Content::tag(
+                    "blockquote",
+                    None,
+                    Some(render_text(
+                        self.text.as_ref().map_or("", |t| t.as_str()),
+                        &self.markups,
+                    )),
+                )
+            }
+            "P" | "H1" | "H2" | "H3" | "H4" | "H5" | "H6" | "PRE" => {
+                Content::tag(
+                    self.r#type.clone(),
+                    None,
+                    Some(render_text(
+                        self.text.as_ref().map_or("", |t| t.as_str()),
+                        &self.markups,
+                    )),
+                )
+            }
+            _ => {
+
+                let attr = Some(attributes! {"x-real-tag" => self.r#type});
+                Content::tag(
+                    "div",
+                    attr,
+                    Some(render_text(
+                        self.text.as_ref().map_or("", |t| t.as_str()),
+                        &self.markups,
+                    )),
+                )
+            },
         }
     }
 }
