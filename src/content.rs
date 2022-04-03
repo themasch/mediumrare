@@ -129,28 +129,23 @@ impl Render for client::Paragraph {
                     ]),
                 )
             }
-            "BQ" => {
-                Content::tag(
-                    "blockquote",
-                    None,
-                    Some(render_text(
-                        self.text.as_ref().map_or("", |t| t.as_str()),
-                        &self.markups,
-                    )),
-                )
-            }
-            "P" | "H1" | "H2" | "H3" | "H4" | "H5" | "H6" | "PRE" => {
-                Content::tag(
-                    self.r#type.clone(),
-                    None,
-                    Some(render_text(
-                        self.text.as_ref().map_or("", |t| t.as_str()),
-                        &self.markups,
-                    )),
-                )
-            }
+            "BQ" => Content::tag(
+                "blockquote",
+                None,
+                Some(render_text(
+                    self.text.as_ref().map_or("", |t| t.as_str()),
+                    &self.markups,
+                )),
+            ),
+            "P" | "H1" | "H2" | "H3" | "H4" | "H5" | "H6" | "PRE" => Content::tag(
+                self.r#type.clone(),
+                None,
+                Some(render_text(
+                    self.text.as_ref().map_or("", |t| t.as_str()),
+                    &self.markups,
+                )),
+            ),
             _ => {
-
                 let attr = Some(attributes! {"x-real-tag" => self.r#type});
                 Content::tag(
                     "div",
@@ -160,7 +155,7 @@ impl Render for client::Paragraph {
                         &self.markups,
                     )),
                 )
-            },
+            }
         }
     }
 }
@@ -176,9 +171,12 @@ impl Render for client::PostResult {
 }
 
 const CSS: &str =
-    "body { background-color: #222; color: #ddd; font-family: sans-serif; font-size: 180%; }
-article { width: 70rem; margin: auto }
-img { max-width: 100% }";
+    "body { background-color: #222; color: #ddd; font-family: sans-serif; font-size: 130%; }
+article { width: 60rem; margin: auto }
+img { max-width: 100% }
+pre { background-color: #111; padding: 1rem; border-radius: .5rem; }
+blockquote { background-color: #333; margin: 0; padding: 1rem;  padding-left: 2rem; border-left: 5px solid gray; }
+a { color: cornflowerblue }";
 
 pub struct Page {
     post: PostResult,
