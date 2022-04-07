@@ -37,13 +37,15 @@ impl ToString for Content {
                     .map(|(name, value)| format!(r#"{}="{}" "#, name, value))
                     .collect();
 
-                let children = if let Some(elements) = children {
-                    elements.iter().map(|child| child.to_string()).collect()
-                } else {
-                    "".to_string()
-                };
+                let child_html: Option<String> = children
+                    .as_ref()
+                    .map(|elements| elements.iter().map(|child| child.to_string()).collect());
 
-                format!("<{} {}>{}</{}>", name, attrs, children, name)
+                if let Some(child_html) = child_html {
+                    format!("<{name} {}>{}</{name}>", attrs, child_html, name = name)
+                } else {
+                    format!("<{} {}/>", name, attrs)
+                }
             }
         }
     }
@@ -138,7 +140,7 @@ impl Render for client::Paragraph {
                 )),
             ),
             "P" | "H1" | "H2" | "H3" | "H4" | "H5" | "H6" | "PRE" => Content::tag(
-                self.r#type.clone(),
+                self.r#type.to_lowercase(),
                 None,
                 Some(render_text(
                     self.text.as_ref().map_or("", |t| t.as_str()),
