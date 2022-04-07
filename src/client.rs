@@ -80,7 +80,7 @@ pub struct QueryRequest<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct PostResult {
     id: String,
-    medium_url: String,
+    pub medium_url: String,
     pub title: String,
     clap_count: u32,
     created_at: usize,
@@ -88,8 +88,8 @@ pub struct PostResult {
     latest_published_at: usize,
     reading_time: f32,
     preview_image: PreviewImage,
-    creator: Creator,
-    tags: Vec<Tag>,
+    pub creator: Creator,
+    pub tags: Vec<Tag>,
     topics: Vec<Topic>,
     content: Content,
 }
@@ -177,9 +177,9 @@ pub struct Tag {
 #[serde(rename_all = "camelCase")]
 pub struct Creator {
     id: String,
-    username: String,
-    name: String,
-    bio: String,
+    pub username: String,
+    pub name: String,
+    pub bio: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

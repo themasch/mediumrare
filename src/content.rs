@@ -56,6 +56,16 @@ impl Content {
         Content::Text(txt.into())
     }
 
+    pub fn hyperlink<S: Into<String>>(href: S, children: Vec<Content>, attr: Option<HashMap<String, String>>) -> Content {
+        let mut attributes = attr.unwrap_or_default();
+        attributes.insert("href".into(), href.into());
+        Content::Tag {
+            name: "a".into(),
+            attributes,
+            children: Some(children),
+        }
+    }
+
     pub fn tag<S: Into<String>>(
         name: S,
         attr: Option<HashMap<String, String>>,
@@ -167,8 +177,37 @@ impl Render for client::PostResult {
         Content::tag(
             "article",
             None,
-            Some(self.paragraphs().iter().map(|p| p.render()).collect()),
+            Some(
+                self.render_header()
+                    .into_iter()
+                    .chain(self.paragraphs().iter().map(|p| p.render()))
+                    .collect(),
+            ),
         )
+    }
+}
+
+impl client::PostResult {
+    fn render_header(&self) -> Vec<Content> {
+        vec![Content::tag(
+            "div",
+            Some(attributes!( "class" => "post-head")),
+            Some(vec![
+                Content::text("published by "),
+                Content::hyperlink(
+                    format!("https://medium.com/@{username}", username = self.creator.username),
+                    vec![Content::text(self.creator.name.clone())],
+                    None,
+                ),
+                Content::text(" on medium "),
+                Content::hyperlink(
+                    self.medium_url.clone(),
+                    vec![Content::text("here")],
+                    None,
+                ),
+                Content::text("."),
+            ]),
+        )]
     }
 }
 
@@ -178,7 +217,8 @@ article { width: 60rem; margin: auto }
 img { max-width: 100% }
 pre { background-color: #111; padding: 1rem; border-radius: .5rem; }
 blockquote { background-color: #333; margin: 0; padding: 1rem;  padding-left: 2rem; border-left: 5px solid gray; }
-a { color: cornflowerblue }";
+a { color: cornflowerblue }
+.post-head {  background-color: #333; margin: 0; padding: 1rem; font-size: 80%; }";
 
 pub struct Page {
     post: PostResult,
