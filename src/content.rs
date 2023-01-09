@@ -1,6 +1,7 @@
 use crate::client;
 use crate::client::{Markup, PostResult};
 use crate::text_markup::{SpanWrap, TextSpan};
+use anyhow::{Context, Result};
 use std::collections::HashMap;
 
 macro_rules! attributes {
@@ -56,7 +57,11 @@ impl Content {
         Content::Text(txt.into())
     }
 
-    pub fn hyperlink<S: Into<String>>(href: S, children: Vec<Content>, attr: Option<HashMap<String, String>>) -> Content {
+    pub fn hyperlink<S: Into<String>>(
+        href: S,
+        children: Vec<Content>,
+        attr: Option<HashMap<String, String>>,
+    ) -> Content {
         let mut attributes = attr.unwrap_or_default();
         attributes.insert("href".into(), href.into());
         Content::Tag {
@@ -79,14 +84,21 @@ impl Content {
     }
 }
 
-fn render_text(text: &str, markups: &[Markup]) -> Vec<Content> {
+fn render_text(text: &str, markups: &[Markup]) -> Result<Vec<Content>> {
     if markups.is_empty() {
-        return vec![Content::text(text)];
+        return Ok(vec![Content::text(text)]);
     }
 
     let mut span = TextSpan::create(text);
-    for markup in markups {
-        let subspan = span.get_sub_span_mut(markup.start, markup.end);
+
+    // temp workaround, we should find a better way to handle this
+    let mut sorted_markup = Vec::from(markups);
+    sorted_markup.sort_by(|l, r| (r.end - r.start).cmp(&(l.end - l.start)));
+
+    for markup in &sorted_markup {
+        let subspan = span
+            .get_sub_span_mut(markup.start, markup.end)
+            .context(format!("failed to get span for markup {:?}", markup))?;
         let wrap = match markup.r#type.as_str() {
             "STRONG" => SpanWrap::Strong,
             "EM" => SpanWrap::Emphasized,
@@ -99,16 +111,16 @@ fn render_text(text: &str, markups: &[Markup]) -> Vec<Content> {
         subspan.add_wrap(wrap);
     }
 
-    span.into()
+    Ok(span.into())
 }
 
 pub trait Render {
-    fn render(&self) -> Content;
+    fn render(&self) -> Result<Content>;
 }
 
 impl Render for client::Paragraph {
-    fn render(&self) -> Content {
-        match self.r#type.as_str() {
+    fn render(&self) -> Result<Content> {
+        Ok(match self.r#type.as_str() {
             "IMG" => {
                 let attr = Some(attributes! {
                     "src" => format!("https://miro.medium.com/max/2000/{}",self.metadata.as_ref().unwrap().id)
@@ -118,10 +130,10 @@ impl Render for client::Paragraph {
             "OLI" => Content::tag(
                 "li",
                 None,
-                Some(render_text(
-                    self.text.as_ref().map_or("", |t| t.as_str()),
-                    &self.markups,
-                )),
+                Some(
+                    render_text(self.text.as_ref().map_or("", |t| t.as_str()), &self.markups)
+                        .context("on rendering LI tag")?,
+                ),
             ),
             "IFRAME" => {
                 let attr = Some(attributes! {
@@ -147,7 +159,7 @@ impl Render for client::Paragraph {
                 Some(render_text(
                     self.text.as_ref().map_or("", |t| t.as_str()),
                     &self.markups,
-                )),
+                )?),
             ),
             "P" | "H1" | "H2" | "H3" | "H4" | "H5" | "H6" | "PRE" => Content::tag(
                 self.r#type.to_lowercase(),
@@ -155,59 +167,56 @@ impl Render for client::Paragraph {
                 Some(render_text(
                     self.text.as_ref().map_or("", |t| t.as_str()),
                     &self.markups,
-                )),
+                )?),
             ),
             _ => {
                 let attr = Some(attributes! {"x-real-tag" => self.r#type});
                 Content::tag(
                     "div",
                     attr,
-                    Some(render_text(
-                        self.text.as_ref().map_or("", |t| t.as_str()),
-                        &self.markups,
-                    )),
+                    Some(
+                        render_text(self.text.as_ref().map_or("", |t| t.as_str()), &self.markups)
+                            .context(format!("on rendering a {} tag", self.r#type))?,
+                    ),
                 )
             }
-        }
+        })
     }
 }
 
 impl Render for client::PostResult {
-    fn render(&self) -> Content {
-        Content::tag(
-            "article",
-            None,
-            Some(
-                self.render_header()
-                    .into_iter()
-                    .chain(self.paragraphs().iter().map(|p| p.render()))
-                    .collect(),
-            ),
-        )
+    fn render(&self) -> Result<Content> {
+        let mut content = self.render_header()?;
+        let mut body: Vec<Content> = self
+            .paragraphs()
+            .iter()
+            .map(|p| p.render())
+            .collect::<Result<Vec<Content>>>()?;
+        content.append(&mut body);
+        Ok(Content::tag("article", None, Some(content)))
     }
 }
 
 impl client::PostResult {
-    fn render_header(&self) -> Vec<Content> {
-        vec![Content::tag(
+    fn render_header(&self) -> Result<Vec<Content>> {
+        Ok(vec![Content::tag(
             "div",
             Some(attributes!( "class" => "post-head")),
             Some(vec![
                 Content::text("published by "),
                 Content::hyperlink(
-                    format!("https://medium.com/@{username}", username = self.creator.username),
+                    format!(
+                        "https://medium.com/@{username}",
+                        username = self.creator.username
+                    ),
                     vec![Content::text(self.creator.name.clone())],
                     None,
                 ),
                 Content::text(" on medium "),
-                Content::hyperlink(
-                    self.medium_url.clone(),
-                    vec![Content::text("here")],
-                    None,
-                ),
+                Content::hyperlink(self.medium_url.clone(), vec![Content::text("here")], None),
                 Content::text("."),
             ]),
-        )]
+        )])
     }
 }
 
@@ -225,8 +234,8 @@ pub struct Page {
 }
 
 impl Render for Page {
-    fn render(&self) -> Content {
-        Content::tag(
+    fn render(&self) -> Result<Content> {
+        Ok(Content::tag(
             "html",
             None,
             Some(vec![
@@ -242,14 +251,53 @@ impl Render for Page {
                         ),
                     ]),
                 ),
-                Content::tag("body", None, Some(vec![self.post.render()])),
+                Content::tag("body", None, Some(vec![self.post.render()?])),
             ]),
-        )
+        ))
     }
 }
 
 impl Page {
     pub fn create(post_result: PostResult) -> Self {
         Page { post: post_result }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::client::{Markup, Paragraph};
+
+    use super::Render;
+
+    #[test]
+    fn test_renders_incorrectly_sorted_markup_correctly() {
+        let p = Paragraph {
+            id: String::from(""),
+            href: None,
+            layout: None,
+            text: Some(String::from("This is a test with some text")),
+            r#type: "P".into(),
+            markups: vec![
+                Markup {
+                    start: 10,
+                    end: 13,
+                    r#type: String::from("EM"),
+                    href: None,
+                },
+                Markup {
+                    start: 8,
+                    end: 13,
+                    r#type: String::from("STRONG"),
+                    href: None,
+                },
+            ],
+            metadata: None,
+            iframe: None,
+        };
+
+        assert_eq!(
+            "<p >This is <strong >a <em >test</em></strong> with some text</p>",
+            p.render().unwrap().to_string()
+        );
     }
 }

@@ -114,9 +114,9 @@ pub struct BodyModel {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Paragraph {
-    id: String,
-    href: Option<String>,
-    layout: Option<String>,
+    pub(crate) id: String,
+    pub(crate) href: Option<String>,
+    pub(crate) layout: Option<String>,
     pub text: Option<String>,
     pub r#type: String,
     pub markups: Vec<Markup>,
@@ -133,7 +133,7 @@ pub struct IFrame {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct IFrameMediaResource {
-    id: String,
+    pub(crate) id: String,
     pub iframe_src: String,
     pub iframe_height: usize,
     pub iframe_width: usize,
@@ -228,7 +228,7 @@ impl PostDataClient for Client {
     fn get_post_data(&self, post_id: &str) -> Result<QueryResponse, ()> {
         let response_text = ureq::post("https://medium.com/_/graphql")
             .set("Content-Type", "application/json")
-            .send_json(&create_post_query(post_id))
+            .send_json(create_post_query(post_id))
             .unwrap()
             .into_string()
             .unwrap();

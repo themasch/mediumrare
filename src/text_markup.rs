@@ -1,5 +1,12 @@
 use crate::content::Content;
+use anyhow::Result;
 use std::collections::HashMap;
+
+#[derive(Debug, thiserror::Error)]
+pub enum RenderingError {
+    #[error("No span found between {0} and {1}")]
+    NoSuchSpan(usize, usize),
+}
 
 #[derive(Debug, PartialEq)]
 enum SpanContent<'a> {
@@ -89,12 +96,12 @@ impl<'a> TextSpan<'a> {
         self.wraps.push(wrap);
     }
 
-    pub fn get_sub_span_mut(&mut self, start: usize, end: usize) -> &mut TextSpan<'a> {
+    pub fn get_sub_span_mut(&mut self, start: usize, end: usize) -> Result<&mut TextSpan<'a>> {
         debug_assert!(end >= start);
         // sometime they send us offsets outside the actual string.. thanks
         let end = end.min(self.end);
         if start == self.start && end == self.end {
-            return self;
+            return Ok(self);
         }
 
         match self.content {
@@ -102,7 +109,7 @@ impl<'a> TextSpan<'a> {
                 let (new_content, idx) = Self::split_str(str_content, self.start, start, end);
                 self.content = SpanContent::Spans(new_content);
                 if let SpanContent::Spans(ref mut spans) = &mut self.content {
-                    return &mut spans[idx];
+                    return Ok(&mut spans[idx]);
                 }
 
                 panic!("something went wrong")
@@ -114,7 +121,7 @@ impl<'a> TextSpan<'a> {
                     }
                 }
 
-                panic!("no match found")
+                Err(RenderingError::NoSuchSpan(start, end).into())
             }
         }
     }
@@ -223,7 +230,7 @@ mod test {
         let mut span = TextSpan::create(input);
         let sub_span = span.get_sub_span_mut(0, 9);
 
-        assert_eq!(SpanContent::Text(input), sub_span.content);
+        assert_eq!(SpanContent::Text(input), sub_span.unwrap().content);
     }
 
     #[test]
@@ -234,15 +241,15 @@ mod test {
 
         assert_eq!(
             SpanContent::Text("hi "),
-            span.get_sub_span_mut(0, 2).content
+            span.get_sub_span_mut(0, 2).unwrap().content
         );
         assert_eq!(
             SpanContent::Text("there"),
-            span.get_sub_span_mut(8, 12).content
+            span.get_sub_span_mut(8, 12).unwrap().content
         );
         assert_eq!(
             SpanContent::Text("test"),
-            span.get_sub_span_mut(24, 27).content
+            span.get_sub_span_mut(24, 27).unwrap().content
         );
     }
 

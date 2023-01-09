@@ -19,7 +19,7 @@ use salvo::{
     Router, Server,
 };
 
-use std::string::ToString;
+use std::{string::ToString, time::Instant};
 
 use client::{Client, PostDataClient};
 use content::{Page, Render};
@@ -30,8 +30,12 @@ lazy_static! {
 }
 
 fn render_post(post_id: &str) -> String {
-    let page = Page::create(CLIENT.get_post_data(post_id).unwrap().get_post());
-    page.render().to_string()
+    let time_start = Instant::now();
+    let post = CLIENT.get_post_data(post_id).unwrap().get_post();
+    let duration = time_start.elapsed();
+    println!("fetching {} took {}", post_id, duration.as_secs_f32());
+    let page = Page::create(post);
+    page.render().expect("rendering failed").to_string()
 }
 
 #[fn_handler]
