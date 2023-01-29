@@ -18,6 +18,7 @@ lazy_static = "1.4.0"
 salvo = { version = "0.17.3", optional = true, features = ["serve", "logging","anyhow"] }
 anyhow = "1.0.68"
 thiserror = "1.0.38"
+maud = "0.24.0"
 
 [features]
 default = ["lambda"]

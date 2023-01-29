@@ -257,12 +257,6 @@ impl Render for Page {
     }
 }
 
-impl Page {
-    pub fn create(post_result: PostResult) -> Self {
-        Page { post: post_result }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use crate::client::{Markup, Paragraph};

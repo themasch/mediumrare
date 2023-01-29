@@ -1,5 +1,6 @@
 mod client;
 mod content;
+mod html;
 mod text_markup;
 
 #[cfg(all(feature = "lambda", feature = "standalone"))]
@@ -22,7 +23,7 @@ use salvo::{
 use std::{string::ToString, time::Instant};
 
 use client::{Client, PostDataClient};
-use content::{Page, Render};
+use content::Render;
 use lazy_static::lazy_static;
 
 lazy_static! {
@@ -34,8 +35,7 @@ fn render_post(post_id: &str) -> String {
     let post = CLIENT.get_post_data(post_id).unwrap().get_post();
     let duration = time_start.elapsed();
     println!("fetching {} took {}", post_id, duration.as_secs_f32());
-    let page = Page::create(post);
-    page.render().expect("rendering failed").to_string()
+    html::html_page(&post.title, &post.render().unwrap().to_string())
 }
 
 #[fn_handler]
@@ -45,8 +45,10 @@ async fn handle_response_standalone(req: &mut salvo::Request, res: &mut salvo::R
         return;
     }
 
-    let postid = req.params().get("postid").unwrap();
-    let content = render_post(postid);
+    let content = match req.params().get("postid") {
+        Some(postid) => render_post(postid),
+        None => html::home(),
+    };
     res.set_status_code(StatusCode::OK);
     res.headers_mut().insert(
         CONTENT_TYPE,
@@ -58,8 +60,10 @@ async fn handle_response_standalone(req: &mut salvo::Request, res: &mut salvo::R
 #[cfg(not(feature = "standalone"))]
 async fn handle_response_aws(event: Request) -> Result<impl IntoResponse, Error> {
     let params = event.path_parameters();
-    let postid = params.first("postid").unwrap_or("633ff591866e");
-    let content = render_post(postid);
+    let content = match params.first("postid") {
+        Some(postid) => render_post(postid),
+        None => html::home(),
+    };
     let builder = Response::builder()
         .header(
             CONTENT_TYPE,
@@ -79,7 +83,9 @@ async fn main() -> Result<(), ()> {
 
     #[cfg(feature = "standalone")]
     {
-        let router = Router::with_path("/<postid>").get(handle_response_standalone);
+        let router = Router::new()
+            .push(Router::with_path("<postid>").get(handle_response_standalone))
+            .push(Router::new().get(handle_response_standalone));
         Server::new(TcpListener::bind("127.0.0.1:7878"))
             .serve(router)
             .await;
