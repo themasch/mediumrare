@@ -46,7 +46,11 @@ async fn handle_response_standalone(req: &mut salvo::Request, res: &mut salvo::R
     }
 
     let content = match req.params().get("postid") {
-        Some(postid) => render_post(postid),
+        Some(postid) => if postid.len() > 0 {
+            render_post(postid)
+        } else {
+            html::home()
+        },
         None => html::home(),
     };
     res.set_status_code(StatusCode::OK);
