@@ -7,6 +7,7 @@ pub fn html_page(title: &str, body: &str) -> String {
                     pre { background-color: #000; padding: 1rem; border-radius: .5rem; overflow-y: scroll; }
                     code { background-color: #000; padding: .25rem; border-radius: .5rem; }
                     blockquote { background-color: #333; margin: 0; padding: 1rem;  padding-left: 2rem; border-left: 5px solid gray; }
+                    li { margin-left: 2rem; }
                     a { color: cornflowerblue }
                     .post-head {  background-color: #333; margin: 0; padding: 1rem; font-size: 80%; } "#;
     html! {

@@ -133,7 +133,8 @@ impl Render for client::Paragraph {
                 });
                 Content::tag("img", attr, None)
             }
-            "OLI" => Content::tag(
+            // TODO: wrap these in a grouping <ul> or <ol> tag
+            "ULI" | "OLI" => Content::tag(
                 "li",
                 None,
                 Some(
