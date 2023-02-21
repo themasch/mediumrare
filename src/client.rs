@@ -234,12 +234,11 @@ pub enum ClientError {
     RequestError(#[from] ureq::Error),
 
     #[error("failed decoding json")]
-    EncodingError(#[from] serde_json::Error)
+    EncodingError(#[from] serde_json::Error),
 }
 
 impl PostDataClient for Client {
     fn get_post_data(&self, post_id: &str) -> Result<QueryResponse, ClientError> {
-
         let response = ureq::post("https://medium.com/_/graphql")
             .set("Content-Type", "application/json")
             .send_json(create_post_query(post_id))?;
@@ -248,9 +247,7 @@ impl PostDataClient for Client {
             return Err(ClientError::NotFoundError(post_id.to_string()));
         }
 
-        let response_text = response.into_string()
-            .unwrap();
-
+        let response_text = response.into_string().unwrap();
 
         if response_text == "{\"data\":{\"postResult\":{}}}\n" {
             return Err(ClientError::NotFoundError(post_id.to_string()));

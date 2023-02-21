@@ -33,7 +33,7 @@ lazy_static! {
 #[derive(Debug, thiserror::Error)]
 enum LocalError {
     #[error("client error: {0:?}")]
-    ClientError(#[from] client::ClientError)
+    ClientError(#[from] client::ClientError),
 }
 
 fn render_post(post_id: &str) -> Result<String, LocalError> {
@@ -41,15 +41,17 @@ fn render_post(post_id: &str) -> Result<String, LocalError> {
     let post = CLIENT.get_post_data(post_id)?.get_post();
     let duration = time_start.elapsed();
     println!("fetching {} took {}", post_id, duration.as_secs_f32());
-    Ok(html::html_page(&post.title, &post.render().unwrap().to_string()))
+    Ok(html::html_page(
+        &post.title,
+        &post.render().unwrap().to_string(),
+    ))
 }
-
 
 fn map_error(res: Result<String, LocalError>) -> (StatusCode, String) {
     match res {
         Ok(c) => (StatusCode::OK, c),
         Err(LocalError::ClientError(err)) => (StatusCode::NOT_FOUND, err.to_string()),
-        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
     }
 }
 
@@ -80,7 +82,6 @@ async fn handle_response_aws(event: Request) -> Result<impl IntoResponse, Error>
         Some(postid) => render_post(postid),
         None => Ok(html::home()),
     });
-
 
     let builder = Response::builder()
         .header(
