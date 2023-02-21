@@ -54,7 +54,12 @@ impl ToString for Content {
 
 impl Content {
     pub fn text<S: Into<String>>(txt: S) -> Content {
-        Content::Text(txt.into())
+        Content::Text(
+            txt.into()
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+        )
     }
 
     pub fn hyperlink<S: Into<String>>(

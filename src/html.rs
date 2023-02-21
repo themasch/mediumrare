@@ -1,10 +1,11 @@
 use maud::{html, PreEscaped, DOCTYPE};
 
 pub fn html_page(title: &str, body: &str) -> String {
-    let css = r#" body { background-color: #222; color: #ddd; font-family: sans-serif; font-size: 130%; }
+    let css = r#" body { background-color: #111; color: #eee; font-family: sans-serif; font-size: 130%; }
                     article { width: 60rem; margin: auto }
                     img { max-width: 100% }
-                    pre { background-color: #111; padding: 1rem; border-radius: .5rem; }
+                    pre { background-color: #000; padding: 1rem; border-radius: .5rem; overflow-y: scroll; }
+                    code { background-color: #000; padding: .25rem; border-radius: .5rem; }
                     blockquote { background-color: #333; margin: 0; padding: 1rem;  padding-left: 2rem; border-left: 5px solid gray; }
                     a { color: cornflowerblue }
                     .post-head {  background-color: #333; margin: 0; padding: 1rem; font-size: 80%; } "#;
