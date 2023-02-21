@@ -63,7 +63,8 @@ async fn handle_response_standalone(req: &mut salvo::Request, res: &mut salvo::R
     }
 
     let (status_code, content) = map_error(match req.params().get("postid") {
-        Some(postid) => render_post(postid),
+        Some(postid) if postid.len() >= 1 => render_post(postid),
+        Some(_) => Ok(html::home()),
         None => Ok(html::home()),
     });
 
@@ -79,7 +80,8 @@ async fn handle_response_standalone(req: &mut salvo::Request, res: &mut salvo::R
 async fn handle_response_aws(event: Request) -> Result<impl IntoResponse, Error> {
     let params = event.path_parameters();
     let (status_code, content) = map_error(match params.first("postid") {
-        Some(postid) => render_post(postid),
+        Some(postid) if postid.len() >= 1 => render_post(postid),
+        Some(_) => Ok(html::home()),
         None => Ok(html::home()),
     });
 
