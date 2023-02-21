@@ -19,6 +19,8 @@ pub enum SpanWrap {
     Strong,
     Emphasized,
     Link { href: String },
+    Unknown { tag: String },
+    Code,
 }
 
 #[derive(Debug, PartialEq)]
@@ -35,6 +37,8 @@ impl SpanWrap {
         let (tag_name, attributes) = match self {
             SpanWrap::Strong => ("strong", empty),
             SpanWrap::Emphasized => ("em", empty),
+            SpanWrap::Code => ("code", empty),
+            SpanWrap::Unknown { tag } => (tag.as_str(), empty),
             SpanWrap::Link { href } => {
                 let mut attributes = HashMap::new();
                 attributes.insert("href".into(), href.to_owned());

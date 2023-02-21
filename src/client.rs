@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use thiserror::Error;
 
 const QUERY_TEXT: &str = "query PostHandler($postId:ID!) {
     postResult(id: $postId) { 
@@ -219,20 +220,42 @@ fn create_post_query(post_id: &str) -> QueryRequest {
 }
 
 pub trait PostDataClient {
-    fn get_post_data(&self, post_id: &str) -> Result<QueryResponse, ()>;
+    fn get_post_data(&self, post_id: &str) -> Result<QueryResponse, ClientError>;
 }
 
 pub struct Client;
 
+#[derive(Debug, thiserror::Error)]
+pub enum ClientError {
+    #[error("not found: {0}")]
+    NotFoundError(String),
+
+    #[error("error on request: {0:?}")]
+    RequestError(#[from] ureq::Error),
+
+    #[error("failed decoding json")]
+    EncodingError(#[from] serde_json::Error)
+}
+
 impl PostDataClient for Client {
-    fn get_post_data(&self, post_id: &str) -> Result<QueryResponse, ()> {
-        let response_text = ureq::post("https://medium.com/_/graphql")
+    fn get_post_data(&self, post_id: &str) -> Result<QueryResponse, ClientError> {
+
+        let response = ureq::post("https://medium.com/_/graphql")
             .set("Content-Type", "application/json")
-            .send_json(create_post_query(post_id))
-            .unwrap()
-            .into_string()
+            .send_json(create_post_query(post_id))?;
+
+        if response.status() == 404 {
+            return Err(ClientError::NotFoundError(post_id.to_string()));
+        }
+
+        let response_text = response.into_string()
             .unwrap();
 
-        Ok(serde_json::from_str::<QueryResponse>(&response_text).unwrap())
+
+        if response_text == "{\"data\":{\"postResult\":{}}}\n" {
+            return Err(ClientError::NotFoundError(post_id.to_string()));
+        }
+
+        Ok(serde_json::from_str::<QueryResponse>(&response_text)?)
     }
 }

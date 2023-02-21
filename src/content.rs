@@ -101,11 +101,12 @@ fn render_text(text: &str, markups: &[Markup]) -> Result<Vec<Content>> {
             .context(format!("failed to get span for markup {:?}", markup))?;
         let wrap = match markup.r#type.as_str() {
             "STRONG" => SpanWrap::Strong,
+            "CODE" => SpanWrap::Code,
             "EM" => SpanWrap::Emphasized,
             "A" => SpanWrap::Link {
                 href: markup.href.as_ref().unwrap_or(&"".to_string()).to_string(),
             },
-            _ => panic!(),
+            _ => panic!("unknown markup type {}", markup.r#type),
         };
 
         subspan.add_wrap(wrap);
