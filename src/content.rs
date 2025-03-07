@@ -129,7 +129,7 @@ impl Render for client::Paragraph {
         Ok(match self.r#type.as_str() {
             "IMG" => {
                 let attr = Some(attributes! {
-                    "src" => format!("https://miro.medium.com/max/2000/{}",self.metadata.as_ref().unwrap().id),
+                    "src" => format!("https://miro.medium.com/v2/resize:fit:2000/{}",self.metadata.as_ref().unwrap().id),
                     "loading" => "lazy"
                 });
                 Content::tag("img", attr, None)
