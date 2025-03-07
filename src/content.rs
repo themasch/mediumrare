@@ -129,7 +129,8 @@ impl Render for client::Paragraph {
         Ok(match self.r#type.as_str() {
             "IMG" => {
                 let attr = Some(attributes! {
-                    "src" => format!("https://miro.medium.com/max/2000/{}",self.metadata.as_ref().unwrap().id)
+                    "src" => format!("https://miro.medium.com/max/2000/{}",self.metadata.as_ref().unwrap().id),
+                    "loading" => "lazy"
                 });
                 Content::tag("img", attr, None)
             }
@@ -175,7 +176,7 @@ impl Render for client::Paragraph {
                     self.text.as_ref().map_or("", |t| t.as_str()),
                     &self.markups,
                 )?),
-            ),
+           ),
             _ => {
                 let attr = Some(attributes! {"x-real-tag" => self.r#type});
                 Content::tag(
