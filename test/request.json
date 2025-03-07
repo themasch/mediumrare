@@ -1,0 +1,56 @@
+{
+	"resource": "/{postid}",
+	"path": "/9bbe5947297b",
+	"httpMethod": "GET",
+	"headers": {
+		"Accept": "*/*",
+		"Accept-Encoding": "gzip, deflate"
+	},
+	"multiValueHeaders": {
+	},
+	"queryStringParameters": {
+	},
+	"multiValueQueryStringParameters": {
+	},
+	"pathParameters": {
+		"postid": "9bbe5947297b"
+	},
+	"stageVariables": {
+	},
+	"requestContext": {
+		"accountId": "12345678912",
+		"resourceId": "roq9wj",
+		"path": "/9bbe5947297b",
+		"stage": "testStage",
+		"domainName": "",
+		"domainPrefix": "",
+		"requestId": "deef4878-7910-11e6-8f14-25afc3e9ae33",
+		"protocol": "HTTP/1.1",
+		"identity": {
+			"cognitoIdentityPoolId": "theCognitoIdentityPoolId",
+			"accountId": "theAccountId",
+			"cognitoIdentityId": "theCognitoIdentityId",
+			"caller": "theCaller",
+			"apiKey": "theApiKey",
+			"apiKeyId": "theApiKeyId",
+			"accessKey": "ANEXAMPLEOFACCESSKEY",
+			"sourceIp": "192.168.196.186",
+			"cognitoAuthenticationType": "theCognitoAuthenticationType",
+			"cognitoAuthenticationProvider": "theCognitoAuthenticationProvider",
+			"userArn": "theUserArn",
+			"userAgent": "PostmanRuntime/2.4.5",
+			"user": "theUser"
+		},
+		"authorizer": {
+			"principalId": "admin",
+			"clientId": 1,
+			"clientName": "Exata"
+		},
+		"resourcePath": "/{postid+}",
+		"httpMethod": "GET",
+		"requestTime": "15/May/2020:06:01:09 +0000",
+		"requestTimeEpoch": 1589522469693,
+		"apiId": "gy415nuibc"
+	},
+	"body": null
+}
