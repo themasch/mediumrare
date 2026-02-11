@@ -1,16 +1,18 @@
-name: Rust
+name: Deploy
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
     branches: [ main ]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  verify:
+    uses: ./.github/workflows/verify.yml
+
+  deploy:
+    needs: verify
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -18,8 +20,6 @@ jobs:
       run: rustup target add x86_64-unknown-linux-musl
     - name: Install musl-gcc
       run: sudo apt install -y musl-tools
-    - name: cargo check
-      run: cargo check --verbose
     - name: build release
       run: cargo build --release
     - name: build deployable zip file
