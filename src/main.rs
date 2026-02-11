@@ -8,10 +8,10 @@ use lambda_http::{
     service_fn, Error, IntoResponse, Request, RequestExt, Response,
 };
 
-use std::{string::ToString, time::Instant};
 use client::{Client, PostDataClient};
 use content::Render;
 use lazy_static::lazy_static;
+use std::{string::ToString, time::Instant};
 
 lazy_static! {
     static ref CLIENT: Client = Client;

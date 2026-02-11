@@ -176,7 +176,7 @@ impl Render for client::Paragraph {
                     self.text.as_ref().map_or("", |t| t.as_str()),
                     &self.markups,
                 )?),
-           ),
+            ),
             _ => {
                 let attr = Some(attributes! {"x-real-tag" => self.r#type});
                 Content::tag(
